@@ -56,7 +56,8 @@ const elements = {
   studentColor: document.querySelector("#studentColor"),
   studentMessage: document.querySelector("#studentMessage"),
   adminRoster: document.querySelector("#adminRoster"),
-  adminCount: document.querySelector("#adminCount")
+  adminCount: document.querySelector("#adminCount"),
+  studentSearch: document.querySelector("#studentSearch")
 };
 
 const state = {
@@ -65,7 +66,8 @@ const state = {
   students: [],
   selectedId: null,
   isAdmin: false,
-  hinted: false
+  hinted: false,
+  adminSearch: ""
 };
 
 function escapeHtml(value) {
@@ -202,48 +204,87 @@ function renderLevels() {
 }
 
 function buildSlots(count) {
-  const desktop = [
-    [15, 59], [30, 42], [47, 65], [65, 42], [80, 62], [21, 76],
-    [39, 83], [58, 76], [74, 84], [12, 35], [51, 30], [88, 36],
-    [32, 59], [68, 62], [45, 50], [23, 54], [83, 50], [56, 57]
+  const featuredSlots = [
+    [[50, 62]],
+    [[29, 62], [71, 62]],
+    [[17, 66], [50, 45], [83, 66]],
+    [[17, 65], [39, 46], [61, 46], [83, 65]],
+    [[12, 67], [30, 45], [50, 68], [70, 45], [88, 67]],
+    [[11, 66], [27, 47], [44, 69], [57, 45], [74, 67], [89, 48]]
   ];
+  if (count > 0 && count <= featuredSlots.length) {
+    return featuredSlots[count - 1];
+  }
+
+  const columns = count <= 12 ? 4 : count <= 20 ? 5 : 6;
+  const rows = Math.ceil(count / columns);
+  const minX = 9;
+  const maxX = 91;
+  const minY = 32;
+  const maxY = 83;
   const slots = [];
+
   for (let index = 0; index < count; index += 1) {
-    if (desktop[index]) {
-      slots.push(desktop[index]);
-    } else {
-      const column = index % 5;
-      const row = Math.floor(index / 5) % 4;
-      slots.push([11 + column * 19 + (row % 2) * 4, 32 + row * 15]);
-    }
+    const row = Math.floor(index / columns);
+    const column = index % columns;
+    const rowSize = Math.min(columns, count - row * columns);
+    const x = rowSize === 1
+      ? 50
+      : minX + (column * (maxX - minX)) / (rowSize - 1);
+    const y = rows === 1
+      ? 58
+      : minY + (row * (maxY - minY)) / (rows - 1);
+    const nudgeX = ((index * 13) % 5 - 2) * 1.1;
+    const nudgeY = ((index * 7) % 5 - 2) * 1.2;
+    slots.push([Math.max(7, Math.min(93, x + nudgeX)), Math.max(29, Math.min(86, y + nudgeY))]);
   }
   return slots;
 }
 
+function getCreatureScale(score) {
+  // Рост заметен после каждого балла и постепенно замедляется, чтобы
+  // даже герой со 100 баллами не перекрывал весь лес.
+  return Math.min(1.92, 0.94 + Math.sqrt(Math.max(0, Number(score))) * 0.13);
+}
+
+function getCreatureSize(count) {
+  // Если в лесу много активных героев, их базовый размер уменьшается,
+  // но относительный рост за баллы остаётся видимым.
+  return Math.max(62, 132 - count * 3);
+}
+
 function renderWorld() {
-  const students = state.students.slice().sort(function (a, b) {
+  const activeStudents = state.students.filter(function (student) {
+    return Number(student.score) > 1;
+  }).sort(function (a, b) {
     return Number(b.score) - Number(a.score) || a.display_name.localeCompare(b.display_name, "ru");
   });
-  const slots = buildSlots(students.length);
+  const slots = buildSlots(activeStudents.length);
+  const baseSize = getCreatureSize(activeStudents.length);
 
-  elements.worldEmpty.hidden = students.length > 0;
-  elements.heroesCount.textContent = String(students.length);
-  elements.pointsCount.textContent = String(students.reduce(function (sum, student) {
+  elements.worldEmpty.hidden = activeStudents.length > 0;
+  if (activeStudents.length === 0) {
+    elements.worldEmpty.innerHTML = state.students.length > 0
+      ? "<span>✦</span><p>Лес ждёт новых открытий</p><small>Герой появится здесь после 2 баллов.</small>"
+      : "<span>✦</span><p>Мир ждёт первых героев</p><small>Учитель добавит их в закрытой панели.</small>";
+  }
+  elements.heroesCount.textContent = String(activeStudents.length);
+  elements.pointsCount.textContent = String(state.students.reduce(function (sum, student) {
     return sum + Number(student.score || 0);
   }, 0));
 
-  elements.animals.innerHTML = students.map(function (student, index) {
-    const level = getLevel(Number(student.score));
+  elements.animals.innerHTML = activeStudents.map(function (student, index) {
     const slot = slots[index];
-    const size = 1 + LEVELS.indexOf(level) * 0.075;
+    const size = getCreatureScale(student.score);
     const selected = student.id === state.selectedId ? " is-selected" : "";
     const driftX = (index % 2 === 0 ? 1 : -1) * (7 + (index % 3) * 4);
     const driftY = index % 3 === 0 ? -4 : 3;
     const label = escapeHtml(student.display_name);
+    const level = getLevel(Number(student.score));
     const description = label + ", " + level.title + ", " + student.score + " " + scoreWord(Number(student.score));
     return '<button class="creature' + selected + '" type="button" data-student-id="' + student.id + '" ' +
       'aria-label="' + description + '" style="left:' + slot[0] + '%;top:' + slot[1] + '%;--scale:' + size +
-      ';--delay:-' + (index * 1.17) + 's;--duration:' + (4.3 + (index % 4) * .6) + 's;--drift-x:' + driftX + 'px;--drift-y:' + driftY + 'px">' +
+      ';--size:' + baseSize + 'px;--delay:-' + (index * 1.17) + 's;--duration:' + (4.3 + (index % 4) * .6) + 's;--drift-x:' + driftX + 'px;--drift-y:' + driftY + 'px">' +
       '<span class="creature__motion"><span class="creature__body">' + animalSvg(student) + '</span></span>' +
       '<span class="creature__label">' + label + '</span></button>';
   }).join("");
@@ -254,16 +295,24 @@ function renderAdminRoster() {
   const sorted = state.students.slice().sort(function (a, b) {
     return Number(b.score) - Number(a.score) || a.display_name.localeCompare(b.display_name, "ru");
   });
-  elements.adminCount.textContent = sorted.length + " " + scoreWord(sorted.length);
-  elements.adminRoster.innerHTML = sorted.map(function (student) {
+  const query = state.adminSearch.trim().toLocaleLowerCase("ru");
+  const filtered = sorted.filter(function (student) {
+    return !query || student.display_name.toLocaleLowerCase("ru").includes(query);
+  });
+  elements.adminCount.textContent = query
+    ? filtered.length + " из " + sorted.length
+    : sorted.length + " " + scoreWord(sorted.length);
+  elements.adminRoster.innerHTML = filtered.map(function (student) {
     return '<article class="admin-row">' +
       '<div class="admin-row__animal">' + animalSvg(student, true) + '</div>' +
       '<div><strong>' + escapeHtml(student.display_name) + '</strong><small>' + getLevel(Number(student.score)).title + " · " + student.score + " " + scoreWord(Number(student.score)) + '</small></div>' +
       '<div class="admin-row__actions">' +
       '<button class="score-button score-button--minus" data-score="-1" data-student-id="' + student.id + '" type="button" aria-label="Убрать один балл у ' + escapeHtml(student.display_name) + '">−</button>' +
       '<button class="score-button" data-score="1" data-student-id="' + student.id + '" type="button" aria-label="Добавить один балл ' + escapeHtml(student.display_name) + '">+</button>' +
+      '<label class="score-editor"><input data-score-value type="number" min="0" max="10000" value="' + Number(student.score) + '" inputmode="numeric" aria-label="Установить количество баллов для ' + escapeHtml(student.display_name) + '" /></label>' +
+      '<button class="score-button score-button--save" data-set-score data-student-id="' + student.id + '" type="button" aria-label="Сохранить указанное количество баллов для ' + escapeHtml(student.display_name) + '">✓</button>' +
       '</div></article>';
-  }).join("") || '<p class="form-message">Пока никто не поселился в лесу.</p>';
+  }).join("") || '<p class="form-message">' + (query ? "Никого не найдено." : "Пока никто не поселился в лесу.") + '</p>';
 }
 
 function renderAll() {
@@ -449,6 +498,24 @@ async function changeScore(studentId, delta) {
   await loadStudents();
 }
 
+async function setScore(studentId, score) {
+  if (!state.isAdmin) return;
+  if (!Number.isInteger(score) || score < 0 || score > 10000) {
+    window.alert("Введите целое число от 0 до 10 000.");
+    return;
+  }
+  const result = await state.client.rpc("admin_set_score", {
+    p_student_id: studentId,
+    p_score: score,
+    p_note: ""
+  });
+  if (result.error) {
+    window.alert("Не удалось установить баллы: " + result.error.message);
+    return;
+  }
+  await loadStudents();
+}
+
 function wireEvents() {
   document.querySelector("#aboutOpen").addEventListener("click", function () {
     elements.aboutDialog.showModal();
@@ -472,7 +539,29 @@ function wireEvents() {
   });
   elements.adminRoster.addEventListener("click", function (event) {
     const button = event.target.closest("[data-score][data-student-id]");
-    if (button) changeScore(button.dataset.studentId, Number(button.dataset.score));
+    if (button) {
+      changeScore(button.dataset.studentId, Number(button.dataset.score));
+      return;
+    }
+    const saveButton = event.target.closest("[data-set-score][data-student-id]");
+    if (saveButton) {
+      const row = saveButton.closest(".admin-row");
+      const input = row.querySelector("[data-score-value]");
+      setScore(saveButton.dataset.studentId, Number(input.value));
+    }
+  });
+  elements.adminRoster.addEventListener("keydown", function (event) {
+    const input = event.target.closest("[data-score-value]");
+    if (input && event.key === "Enter") {
+      event.preventDefault();
+      const row = input.closest(".admin-row");
+      const saveButton = row.querySelector("[data-set-score][data-student-id]");
+      setScore(saveButton.dataset.studentId, Number(input.value));
+    }
+  });
+  elements.studentSearch.addEventListener("input", function () {
+    state.adminSearch = elements.studentSearch.value;
+    renderAdminRoster();
   });
 }
 

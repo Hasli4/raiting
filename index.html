@@ -61,8 +61,11 @@
           <button class="button button--ghost" id="aboutOpen" type="button">
             Как это работает
           </button>
-          <button class="button button--quiet" id="adminOpen" type="button">
-            Войти учителю
+          <button class="admin-orb" id="adminOpen" type="button" aria-label="Войти учителю" title="Войти учителю">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5.5" y="10.5" width="13" height="9" rx="2.3"></rect>
+              <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.2v2.2"></path>
+            </svg>
           </button>
         </div>
       </header>
@@ -200,6 +203,10 @@
             <h3 id="rosterTitle">Герои</h3>
             <span id="adminCount"></span>
           </div>
+          <label class="admin-search">
+            <span>Поиск по имени</span>
+            <input id="studentSearch" type="search" autocomplete="off" placeholder="Например, Михаил" />
+          </label>
           <div id="adminRoster"></div>
         </section>
       </section>
