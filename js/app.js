@@ -31,11 +31,11 @@ const DEMO_STUDENTS = [
 ];
 
 const BEHAVIORS = [
-  { id: "sway", duration: 4.8 },
-  { id: "stroll", duration: 7.2 },
-  { id: "jump", duration: 2.1 },
-  { id: "dash", duration: 3.1 },
-  { id: "look", duration: 3.8 }
+  { id: "sway", duration: 4.8, weight: 2 },
+  { id: "stroll", duration: 5.8, weight: 4 },
+  { id: "jump", duration: 2.1, weight: 2 },
+  { id: "dash", duration: 2.3, weight: 2 },
+  { id: "look", duration: 3.8, weight: 2 }
 ];
 
 const config = window.CLASS_WORLD_CONFIG || {};
@@ -50,7 +50,8 @@ const elements = {
   connectionStatus: document.querySelector("#connectionStatus"),
   aboutDialog: document.querySelector("#aboutDialog"),
   heroDialog: document.querySelector("#heroDialog"),
-  heroDialogContent: document.querySelector("#heroDialogContent")
+  heroDialogContent: document.querySelector("#heroDialogContent"),
+  siteWanderers: document.querySelector("#siteWanderers")
 };
 
 const state = {
@@ -59,7 +60,9 @@ const state = {
   students: [],
   selectedId: null,
   hinted: false,
-  behaviors: {}
+  motions: {},
+  explorers: {},
+  lastExplorerAt: 0
 };
 
 function escapeHtml(value) {
@@ -245,32 +248,137 @@ function getCreatureSize(count) {
   return Math.max(62, 132 - count * 3);
 }
 
-function getCreatureBehavior(studentId) {
-  if (!state.behaviors[studentId]) {
-    state.behaviors[studentId] = BEHAVIORS[Math.floor(Math.random() * BEHAVIORS.length)];
-  }
-  return state.behaviors[studentId];
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
 }
 
-function rotateCreatureBehaviors() {
-  const activeIds = state.students
-    .filter(function (student) { return Number(student.score) > 1; })
-    .map(function (student) { return student.id; });
-  const activeIdSet = new Set(activeIds);
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
 
-  Object.keys(state.behaviors).forEach(function (studentId) {
-    if (!activeIdSet.has(studentId)) delete state.behaviors[studentId];
+function chooseBehavior(previousId) {
+  const pool = BEHAVIORS.filter(function (behavior) {
+    return behavior.id !== previousId;
+  }).flatMap(function (behavior) {
+    return Array.from({ length: behavior.weight }, function () { return behavior; });
+  });
+  return pool[Math.floor(Math.random() * pool.length)] || BEHAVIORS[0];
+}
+
+function getCreatureMotion(studentId, startPosition) {
+  if (!state.motions[studentId]) {
+    state.motions[studentId] = {
+      x: startPosition[0],
+      y: startPosition[1],
+      behavior: chooseBehavior(""),
+      duration: 0
+    };
+  }
+  return state.motions[studentId];
+}
+
+function clearInactiveMotions(activeStudents) {
+  const activeIds = new Set(activeStudents.map(function (student) { return student.id; }));
+  Object.keys(state.motions).forEach(function (studentId) {
+    if (!activeIds.has(studentId)) delete state.motions[studentId];
+  });
+}
+
+function chooseDestination(motion, behavior) {
+  const ranges = {
+    sway: [2, 1],
+    look: [3, 2],
+    jump: [7, 5],
+    stroll: [23, 16],
+    dash: [47, 29]
+  };
+  const range = ranges[behavior.id] || ranges.sway;
+  return {
+    x: clamp(motion.x + randomBetween(-range[0], range[0]), 8, 92),
+    y: clamp(motion.y + randomBetween(-range[1], range[1]), 29, 86)
+  };
+}
+
+function applyMotionToElement(studentId) {
+  const motion = state.motions[studentId];
+  const creature = elements.animals.querySelector('[data-student-id="' + studentId + '"]');
+  if (!motion || !creature) return;
+  const motionElement = creature.querySelector(".creature__motion");
+  creature.style.setProperty("--move-duration", motion.duration + "ms");
+  creature.style.left = motion.x + "%";
+  creature.style.top = motion.y + "%";
+  motionElement.className = "creature__motion creature__motion--" + motion.behavior.id;
+  motionElement.style.setProperty("--behavior-duration", motion.behavior.duration + "s");
+}
+
+function launchSiteExplorer(student) {
+  if (state.explorers[student.id]) return;
+  const source = elements.animals.querySelector('[data-student-id="' + student.id + '"]');
+  if (!source) return;
+
+  const sourceRect = source.getBoundingClientRect();
+  const clone = source.cloneNode(true);
+  const duration = Math.round(randomBetween(5200, 7600));
+  const endX = randomBetween(10, Math.max(12, window.innerWidth - 110));
+  const endY = randomBetween(105, Math.max(120, window.innerHeight - 135));
+
+  state.explorers[student.id] = clone;
+  source.classList.add("is-exploring");
+  clone.classList.add("site-explorer");
+  clone.removeAttribute("aria-label");
+  clone.setAttribute("tabindex", "-1");
+  clone.style.setProperty("--move-duration", duration + "ms");
+  clone.style.left = sourceRect.left + sourceRect.width / 2 + "px";
+  clone.style.top = sourceRect.top + sourceRect.height / 2 + "px";
+  clone.querySelector(".creature__motion").className = "creature__motion creature__motion--dash";
+  elements.siteWanderers.appendChild(clone);
+
+  window.requestAnimationFrame(function () {
+    clone.style.left = endX + "px";
+    clone.style.top = endY + "px";
   });
 
-  if (activeIds.length === 0) return;
-  activeIds.forEach(function (studentId) {
-    if (Math.random() < 0.46) {
-      const previousId = state.behaviors[studentId] ? state.behaviors[studentId].id : "";
-      const options = BEHAVIORS.filter(function (behavior) { return behavior.id !== previousId; });
-      state.behaviors[studentId] = options[Math.floor(Math.random() * options.length)];
-    }
+  window.setTimeout(function () {
+    clone.remove();
+    const currentSource = elements.animals.querySelector('[data-student-id="' + student.id + '"]');
+    if (currentSource) currentSource.classList.remove("is-exploring");
+    delete state.explorers[student.id];
+  }, duration + 500);
+}
+
+function runMotionCycle() {
+  const activeStudents = state.students.filter(function (student) {
+    return Number(student.score) > 1;
   });
-  renderWorld();
+  activeStudents.forEach(function (student) {
+    const motion = state.motions[student.id];
+    if (!motion || Math.random() > 0.82) return;
+    const behavior = chooseBehavior(motion.behavior.id);
+    const duration = Math.round(
+      behavior.id === "dash"
+        ? randomBetween(1300, 2200)
+        : behavior.id === "stroll"
+          ? randomBetween(4400, 7200)
+          : randomBetween(2100, 4400)
+    );
+    const destination = chooseDestination(motion, behavior);
+    motion.x = destination.x;
+    motion.y = destination.y;
+    motion.duration = duration;
+    motion.behavior = behavior;
+    applyMotionToElement(student.id);
+  });
+
+  const explorers = activeStudents.filter(function (student) {
+    return Number(student.score) >= LEVELS[1].min && !state.explorers[student.id];
+  });
+  if (explorers.length && Date.now() - state.lastExplorerAt > 16000 && Math.random() < 0.3) {
+    const explorer = explorers[Math.floor(Math.random() * explorers.length)];
+    state.lastExplorerAt = Date.now();
+    launchSiteExplorer(explorer);
+  }
+
+  window.setTimeout(runMotionCycle, Math.round(randomBetween(3800, 6300)));
 }
 
 function renderWorld() {
@@ -281,6 +389,7 @@ function renderWorld() {
   });
   const slots = buildSlots(activeStudents.length);
   const baseSize = getCreatureSize(activeStudents.length);
+  clearInactiveMotions(activeStudents);
 
   elements.worldEmpty.hidden = activeStudents.length > 0;
   if (activeStudents.length === 0) {
@@ -295,18 +404,17 @@ function renderWorld() {
 
   elements.animals.innerHTML = activeStudents.map(function (student, index) {
     const slot = slots[index];
+    const motion = getCreatureMotion(student.id, slot);
     const size = getCreatureScale(student.score);
     const selected = student.id === state.selectedId ? " is-selected" : "";
-    const driftX = (index % 2 === 0 ? 1 : -1) * (7 + (index % 3) * 4);
-    const driftY = index % 3 === 0 ? -4 : 3;
-    const behavior = getCreatureBehavior(student.id);
+    const exploring = state.explorers[student.id] ? " is-exploring" : "";
     const label = escapeHtml(student.display_name);
     const level = getLevel(Number(student.score));
     const description = label + ", " + level.title + ", " + student.score + " " + scoreWord(Number(student.score));
-    return '<button class="creature' + selected + '" type="button" data-student-id="' + student.id + '" ' +
-      'aria-label="' + description + '" style="left:' + slot[0] + '%;top:' + slot[1] + '%;--scale:' + size +
-      ';--size:' + baseSize + 'px;--delay:-' + (index * 1.17) + 's;--duration:' + behavior.duration + 's;--drift-x:' + driftX + 'px;--drift-y:' + driftY + 'px">' +
-      '<span class="creature__motion creature__motion--' + behavior.id + '"><span class="creature__body">' + animalSvg(student) + '</span></span>' +
+    return '<button class="creature' + selected + exploring + '" type="button" data-student-id="' + student.id + '" ' +
+      'aria-label="' + description + '" style="left:' + motion.x + '%;top:' + motion.y + '%;--scale:' + size +
+      ';--size:' + baseSize + 'px;--move-duration:' + motion.duration + 'ms;--behavior-duration:' + motion.behavior.duration + 's">' +
+      '<span class="creature__motion creature__motion--' + motion.behavior.id + '"><span class="creature__body">' + animalSvg(student) + '</span></span>' +
       '<span class="creature__label">' + label + '</span></button>';
   }).join("");
 }
@@ -416,7 +524,7 @@ async function start() {
   renderLevels();
   wireEvents();
   await connectBackend();
-  window.setInterval(rotateCreatureBehaviors, 7000);
+  window.setTimeout(runMotionCycle, 1800);
 }
 
 start();
