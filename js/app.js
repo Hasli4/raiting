@@ -59,8 +59,7 @@ const elements = {
   connectionStatus: document.querySelector("#connectionStatus"),
   aboutDialog: document.querySelector("#aboutDialog"),
   heroDialog: document.querySelector("#heroDialog"),
-  heroDialogContent: document.querySelector("#heroDialogContent"),
-  siteWanderers: document.querySelector("#siteWanderers")
+  heroDialogContent: document.querySelector("#heroDialogContent")
 };
 
 const state = {
@@ -70,8 +69,7 @@ const state = {
   selectedId: null,
   hinted: false,
   motions: {},
-  explorers: {},
-  lastExplorerAt: 0
+  pressStates: {}
 };
 
 function escapeHtml(value) {
@@ -339,39 +337,20 @@ function applyMotionToElement(studentId) {
   bodyElement.style.setProperty("--effect-duration", motion.effect.duration + "s");
 }
 
-function launchSiteExplorer(student) {
-  if (state.explorers[student.id]) return;
-  const source = elements.animals.querySelector('[data-student-id="' + student.id + '"]');
-  if (!source) return;
-
-  const sourceRect = source.getBoundingClientRect();
-  const clone = source.cloneNode(true);
-  const duration = Math.round(randomBetween(5200, 7600));
-  const endX = randomBetween(10, Math.max(12, window.innerWidth - 110));
-  const endY = randomBetween(105, Math.max(120, window.innerHeight - 135));
-
-  state.explorers[student.id] = clone;
-  source.classList.add("is-exploring");
-  clone.classList.add("site-explorer");
-  clone.removeAttribute("aria-label");
-  clone.setAttribute("tabindex", "-1");
-  clone.style.setProperty("--move-duration", duration + "ms");
-  clone.style.left = sourceRect.left + sourceRect.width / 2 + "px";
-  clone.style.top = sourceRect.top + sourceRect.height / 2 + "px";
-  clone.querySelector(".creature__motion").className = "creature__motion creature__motion--dash";
-  elements.siteWanderers.appendChild(clone);
-
-  window.requestAnimationFrame(function () {
-    clone.style.left = endX + "px";
-    clone.style.top = endY + "px";
+function captureCurrentMotionPositions() {
+  const areaRect = elements.animals.getBoundingClientRect();
+  if (!areaRect.width || !areaRect.height) return;
+  elements.animals.querySelectorAll(".creature[data-student-id]").forEach(function (creature) {
+    const motion = state.motions[creature.dataset.studentId];
+    if (!motion) return;
+    const computed = window.getComputedStyle(creature);
+    const left = Number.parseFloat(computed.left);
+    const top = Number.parseFloat(computed.top);
+    if (Number.isFinite(left) && Number.isFinite(top)) {
+      motion.x = clamp((left / areaRect.width) * 100, 8, 92);
+      motion.y = clamp((top / areaRect.height) * 100, 29, 86);
+    }
   });
-
-  window.setTimeout(function () {
-    clone.remove();
-    const currentSource = elements.animals.querySelector('[data-student-id="' + student.id + '"]');
-    if (currentSource) currentSource.classList.remove("is-exploring");
-    delete state.explorers[student.id];
-  }, duration + 500);
 }
 
 function runMotionCycle() {
@@ -414,19 +393,11 @@ function runMotionCycle() {
     applyMotionToElement(student.id);
   });
 
-  const explorers = activeStudents.filter(function (student) {
-    return Number(student.score) >= LEVELS[1].min && !state.explorers[student.id];
-  });
-  if (explorers.length && Date.now() - state.lastExplorerAt > 16000 && Math.random() < 0.3) {
-    const explorer = explorers[Math.floor(Math.random() * explorers.length)];
-    state.lastExplorerAt = Date.now();
-    launchSiteExplorer(explorer);
-  }
-
   window.setTimeout(runMotionCycle, Math.round(randomBetween(3800, 6300)));
 }
 
 function renderWorld() {
+  captureCurrentMotionPositions();
   const activeStudents = state.students.filter(function (student) {
     return Number(student.score) > 1;
   }).sort(function (a, b) {
@@ -464,11 +435,10 @@ function renderWorld() {
     occupiedEffects.add(motion.effect.id);
     const size = getCreatureScale(student.score);
     const selected = student.id === state.selectedId ? " is-selected" : "";
-    const exploring = state.explorers[student.id] ? " is-exploring" : "";
     const label = escapeHtml(student.display_name);
     const level = getLevel(Number(student.score));
     const description = label + ", " + level.title + ", " + student.score + " " + scoreWord(Number(student.score));
-    return '<button class="creature' + selected + exploring + '" type="button" data-student-id="' + student.id + '" ' +
+    return '<button class="creature' + selected + '" type="button" data-student-id="' + student.id + '" ' +
       'aria-label="' + description + '" style="left:' + motion.x + '%;top:' + motion.y + '%;--scale:' + size +
       ';--size:' + baseSize + 'px;--move-duration:' + motion.duration + 'ms;--behavior-duration:' + motion.behavior.duration + 's;--effect-duration:' + motion.effect.duration + 's">' +
       '<span class="creature__motion creature__motion--' + motion.behavior.id + '"><span class="creature__body creature__effect--' + motion.effect.id + '">' + animalSvg(student) + '</span></span>' +
@@ -478,6 +448,127 @@ function renderWorld() {
 
 function renderAll() {
   renderWorld();
+}
+
+function randomPointFarFrom(motion) {
+  let point = { x: motion.x, y: motion.y };
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    point = {
+      x: randomBetween(9, 91),
+      y: randomBetween(31, 85)
+    };
+    if (Math.hypot(point.x - motion.x, point.y - motion.y) > 25) break;
+  }
+  return point;
+}
+
+function playClickReaction(studentId) {
+  const student = state.students.find(function (item) { return item.id === studentId; });
+  const creature = elements.animals.querySelector('[data-student-id="' + studentId + '"]');
+  const motion = state.motions[studentId];
+  if (!student || !creature || !motion) return;
+
+  captureCurrentMotionPositions();
+  const svg = creature.querySelector(".creature__body svg");
+  const reactions = Number(student.score) >= LEVELS[1].min
+    ? ["hop", "wiggle", "spin", "rainbow", "dash"]
+    : ["hop", "wiggle", "glow", "dash"];
+  const reaction = reactions[Math.floor(Math.random() * reactions.length)];
+
+  if (reaction === "dash") {
+    const target = randomPointFarFrom(motion);
+    motion.x = target.x;
+    motion.y = target.y;
+    motion.duration = Math.round(randomBetween(850, 1450));
+    applyMotionToElement(studentId);
+    svg.animate(
+      [
+        { transform: "scale(1) rotate(0deg)" },
+        { transform: "scale(1.13) rotate(7deg)", offset: 0.45 },
+        { transform: "scale(1) rotate(0deg)" }
+      ],
+      { duration: 540, easing: "ease-out", fill: "none" }
+    );
+    return;
+  }
+
+  if (reaction === "spin") {
+    svg.animate(
+      [
+        { transform: "rotate(0deg) scale(1)", transformOrigin: "center" },
+        { transform: "rotate(360deg) scale(1.12)", transformOrigin: "center", offset: 0.58 },
+        { transform: "rotate(720deg) scale(1)", transformOrigin: "center" }
+      ],
+      { duration: 800, easing: "cubic-bezier(.22,.78,.28,1)", fill: "none" }
+    );
+    return;
+  }
+
+  if (reaction === "rainbow") {
+    svg.animate(
+      [
+        { filter: "hue-rotate(0deg) saturate(1)" },
+        { filter: "hue-rotate(210deg) saturate(1.7)", offset: 0.55 },
+        { filter: "hue-rotate(360deg) saturate(1)" }
+      ],
+      { duration: 880, easing: "ease-in-out", fill: "none" }
+    );
+    return;
+  }
+
+  if (reaction === "glow") {
+    svg.animate(
+      [
+        { filter: "drop-shadow(0 0 0 rgba(255,230,100,0))" },
+        { filter: "drop-shadow(0 0 12px rgba(255,230,100,.95))", offset: 0.46 },
+        { filter: "drop-shadow(0 0 0 rgba(255,230,100,0))" }
+      ],
+      { duration: 670, easing: "ease-out", fill: "none" }
+    );
+    return;
+  }
+
+  const wiggle = reaction === "wiggle";
+  svg.animate(
+    wiggle
+      ? [
+        { transform: "rotate(0deg)", transformOrigin: "center bottom" },
+        { transform: "rotate(-13deg)", transformOrigin: "center bottom", offset: 0.26 },
+        { transform: "rotate(12deg)", transformOrigin: "center bottom", offset: 0.58 },
+        { transform: "rotate(0deg)", transformOrigin: "center bottom" }
+      ]
+      : [
+        { transform: "translateY(0) scale(1)", transformOrigin: "center bottom" },
+        { transform: "translateY(-22px) scale(1.08)", transformOrigin: "center bottom", offset: 0.48 },
+        { transform: "translateY(0) scale(1)", transformOrigin: "center bottom" }
+      ],
+    { duration: wiggle ? 570 : 520, easing: "ease-out", fill: "none" }
+  );
+}
+
+function startHeroPress(button, pointerId) {
+  const studentId = button.dataset.studentId;
+  const press = {
+    held: false,
+    pointerId: pointerId,
+    timer: window.setTimeout(function () {
+      press.held = true;
+      button.classList.add("is-held");
+      delete state.pressStates[studentId];
+      showHero(studentId);
+    }, 560)
+  };
+  state.pressStates[studentId] = press;
+}
+
+function endHeroPress(button, cancelled) {
+  const studentId = button.dataset.studentId;
+  const press = state.pressStates[studentId];
+  if (!press) return;
+  window.clearTimeout(press.timer);
+  button.classList.remove("is-held");
+  delete state.pressStates[studentId];
+  if (!press.held && !cancelled) playClickReaction(studentId);
 }
 
 function showHero(studentId) {
@@ -569,9 +660,29 @@ function wireEvents() {
       dialog.close();
     });
   });
-  elements.animals.addEventListener("click", function (event) {
+  elements.animals.addEventListener("pointerdown", function (event) {
     const button = event.target.closest("[data-student-id]");
-    if (button) showHero(button.dataset.studentId);
+    if (!button || (event.pointerType === "mouse" && event.button !== 0)) return;
+    button.setPointerCapture?.(event.pointerId);
+    startHeroPress(button, event.pointerId);
+  });
+  elements.animals.addEventListener("pointerup", function (event) {
+    const button = event.target.closest("[data-student-id]");
+    if (button) endHeroPress(button, false);
+  });
+  elements.animals.addEventListener("pointercancel", function (event) {
+    const button = event.target.closest("[data-student-id]");
+    if (button) endHeroPress(button, true);
+  });
+  elements.animals.addEventListener("keydown", function (event) {
+    const button = event.target.closest("[data-student-id]");
+    if (button && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      showHero(button.dataset.studentId);
+    }
+  });
+  elements.animals.addEventListener("contextmenu", function (event) {
+    if (event.target.closest("[data-student-id]")) event.preventDefault();
   });
 }
 
