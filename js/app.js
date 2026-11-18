@@ -38,6 +38,15 @@ const BEHAVIORS = [
   { id: "look", duration: 3.8, weight: 2 }
 ];
 
+const EFFECTS = [
+  { id: "normal", duration: 1, weight: 6, minScore: 2 },
+  { id: "glow", duration: 2.7, weight: 3, minScore: 2 },
+  { id: "sparkle", duration: 2.8, weight: 2, minScore: 2 },
+  { id: "pulse", duration: 2.1, weight: 2, minScore: 3 },
+  { id: "rainbow", duration: 3.4, weight: 1, minScore: 5 },
+  { id: "spin", duration: 1.5, weight: 1, minScore: 5 }
+];
+
 const config = window.CLASS_WORLD_CONFIG || {};
 const elements = {
   animals: document.querySelector("#animals"),
@@ -256,22 +265,38 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-function chooseBehavior(previousId) {
-  const pool = BEHAVIORS.filter(function (behavior) {
-    return behavior.id !== previousId;
-  }).flatMap(function (behavior) {
-    return Array.from({ length: behavior.weight }, function () { return behavior; });
+function chooseWeighted(items, previousId, occupiedIds, preferUnique) {
+  let candidates = items.filter(function (item) {
+    return item.id !== previousId && (!preferUnique || !occupiedIds.has(item.id));
   });
-  return pool[Math.floor(Math.random() * pool.length)] || BEHAVIORS[0];
+  if (candidates.length === 0) {
+    candidates = items.filter(function (item) { return item.id !== previousId; });
+  }
+  if (candidates.length === 0) candidates = items;
+  const pool = candidates.flatMap(function (item) {
+    return Array.from({ length: item.weight }, function () { return item; });
+  });
+  return pool[Math.floor(Math.random() * pool.length)] || items[0];
 }
 
-function getCreatureMotion(studentId, startPosition) {
+function chooseEffect(score, previousId, occupiedIds, preferUnique) {
+  const allowed = EFFECTS.filter(function (effect) {
+    return Number(score) >= effect.minScore;
+  });
+  return chooseWeighted(allowed, previousId, occupiedIds, preferUnique);
+}
+
+function getCreatureMotion(studentId, startPosition, score, occupiedBehaviors, occupiedEffects, preferUnique) {
   if (!state.motions[studentId]) {
+    const behavior = chooseWeighted(BEHAVIORS, "", occupiedBehaviors, preferUnique);
+    const effect = chooseEffect(score, "", occupiedEffects, preferUnique);
     state.motions[studentId] = {
       x: startPosition[0],
       y: startPosition[1],
-      behavior: chooseBehavior(""),
-      duration: 0
+      behavior: behavior,
+      effect: effect,
+      duration: 0,
+      effectUntil: Date.now() + Math.max(behavior.duration, effect.duration) * 1000
     };
   }
   return state.motions[studentId];
@@ -309,6 +334,9 @@ function applyMotionToElement(studentId) {
   creature.style.top = motion.y + "%";
   motionElement.className = "creature__motion creature__motion--" + motion.behavior.id;
   motionElement.style.setProperty("--behavior-duration", motion.behavior.duration + "s");
+  const bodyElement = creature.querySelector(".creature__body");
+  bodyElement.className = "creature__body creature__effect--" + motion.effect.id;
+  bodyElement.style.setProperty("--effect-duration", motion.effect.duration + "s");
 }
 
 function launchSiteExplorer(student) {
@@ -350,10 +378,23 @@ function runMotionCycle() {
   const activeStudents = state.students.filter(function (student) {
     return Number(student.score) > 1;
   });
+  const preferUnique = activeStudents.length <= 6;
+  const occupiedBehaviors = new Set(activeStudents
+    .map(function (student) { return state.motions[student.id]; })
+    .filter(Boolean)
+    .map(function (motion) { return motion.behavior.id; }));
+  const occupiedEffects = new Set(activeStudents
+    .map(function (student) { return state.motions[student.id]; })
+    .filter(Boolean)
+    .map(function (motion) { return motion.effect.id; }));
+
   activeStudents.forEach(function (student) {
     const motion = state.motions[student.id];
-    if (!motion || Math.random() > 0.82) return;
-    const behavior = chooseBehavior(motion.behavior.id);
+    if (!motion || Date.now() < motion.effectUntil || Math.random() > 0.82) return;
+    occupiedBehaviors.delete(motion.behavior.id);
+    occupiedEffects.delete(motion.effect.id);
+    const behavior = chooseWeighted(BEHAVIORS, motion.behavior.id, occupiedBehaviors, preferUnique);
+    const effect = chooseEffect(student.score, motion.effect.id, occupiedEffects, preferUnique);
     const duration = Math.round(
       behavior.id === "dash"
         ? randomBetween(1300, 2200)
@@ -366,6 +407,10 @@ function runMotionCycle() {
     motion.y = destination.y;
     motion.duration = duration;
     motion.behavior = behavior;
+    motion.effect = effect;
+    motion.effectUntil = Date.now() + Math.max(behavior.duration, effect.duration) * 1000;
+    occupiedBehaviors.add(behavior.id);
+    occupiedEffects.add(effect.id);
     applyMotionToElement(student.id);
   });
 
@@ -390,6 +435,9 @@ function renderWorld() {
   const slots = buildSlots(activeStudents.length);
   const baseSize = getCreatureSize(activeStudents.length);
   clearInactiveMotions(activeStudents);
+  const preferUnique = activeStudents.length <= 6;
+  const occupiedBehaviors = new Set();
+  const occupiedEffects = new Set();
 
   elements.worldEmpty.hidden = activeStudents.length > 0;
   if (activeStudents.length === 0) {
@@ -404,7 +452,16 @@ function renderWorld() {
 
   elements.animals.innerHTML = activeStudents.map(function (student, index) {
     const slot = slots[index];
-    const motion = getCreatureMotion(student.id, slot);
+    const motion = getCreatureMotion(
+      student.id,
+      slot,
+      student.score,
+      occupiedBehaviors,
+      occupiedEffects,
+      preferUnique
+    );
+    occupiedBehaviors.add(motion.behavior.id);
+    occupiedEffects.add(motion.effect.id);
     const size = getCreatureScale(student.score);
     const selected = student.id === state.selectedId ? " is-selected" : "";
     const exploring = state.explorers[student.id] ? " is-exploring" : "";
@@ -413,8 +470,8 @@ function renderWorld() {
     const description = label + ", " + level.title + ", " + student.score + " " + scoreWord(Number(student.score));
     return '<button class="creature' + selected + exploring + '" type="button" data-student-id="' + student.id + '" ' +
       'aria-label="' + description + '" style="left:' + motion.x + '%;top:' + motion.y + '%;--scale:' + size +
-      ';--size:' + baseSize + 'px;--move-duration:' + motion.duration + 'ms;--behavior-duration:' + motion.behavior.duration + 's">' +
-      '<span class="creature__motion creature__motion--' + motion.behavior.id + '"><span class="creature__body">' + animalSvg(student) + '</span></span>' +
+      ';--size:' + baseSize + 'px;--move-duration:' + motion.duration + 'ms;--behavior-duration:' + motion.behavior.duration + 's;--effect-duration:' + motion.effect.duration + 's">' +
+      '<span class="creature__motion creature__motion--' + motion.behavior.id + '"><span class="creature__body creature__effect--' + motion.effect.id + '">' + animalSvg(student) + '</span></span>' +
       '<span class="creature__label">' + label + '</span></button>';
   }).join("");
 }
