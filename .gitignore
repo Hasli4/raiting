@@ -1,0 +1,19 @@
+# Local editor and operating-system files
+.DS_Store
+Thumbs.db
+.vs/
+.vscode/
+
+# The site is intentionally dependency-free. If you use local tooling later,
+# its generated files should not be published by accident.
+node_modules/
+dist/
+_site/
+playwright-report/
+test-results/
+
+# These files set up the database once, but are not needed by the live website.
+# Keep them locally; Git will not offer them for publishing.
+supabase/
+README.md
+
