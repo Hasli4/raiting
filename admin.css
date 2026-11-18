@@ -1,0 +1,138 @@
+.admin-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 84% 7%, rgba(175, 218, 138, .42), transparent 25rem),
+    radial-gradient(circle at 8% 76%, rgba(255, 211, 132, .23), transparent 20rem),
+    #f7f8f0;
+}
+
+.admin-header {
+  width: min(1220px, calc(100% - 40px));
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: auto;
+}
+
+.admin-header__actions { display: flex; align-items: center; gap: 8px; }
+.admin-main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 46px 0 86px; }
+
+.login-card {
+  width: min(470px, 100%);
+  margin: 65px auto;
+  padding: 45px;
+  border: 1px solid rgba(23, 61, 51, .12);
+  border-radius: 30px;
+  background: rgba(255, 253, 248, .9);
+  box-shadow: 0 24px 60px rgba(38, 76, 52, .13);
+}
+
+.login-card__mark {
+  width: 51px;
+  height: 51px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 27px;
+  border-radius: 17px;
+  color: #fff9d7;
+  background: var(--forest);
+  box-shadow: 5px 5px 0 #b8dba8;
+  font-size: 31px;
+  font-weight: 900;
+}
+.login-card h1, .dashboard h1 { margin-bottom: 14px; font-size: clamp(42px, 5.4vw, 67px); }
+.login-card__copy { max-width: 330px; color: var(--muted); line-height: 1.55; }
+
+.dashboard { display: grid; gap: 24px; }
+.dashboard__intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 35px;
+  padding: 17px 0 22px;
+}
+.dashboard__intro h1 { margin-bottom: 0; line-height: .9; }
+.dashboard__intro h1 em { color: #c9725e; }
+.dashboard__intro > p { max-width: 340px; margin-bottom: 7px; color: var(--muted); line-height: 1.55; }
+
+.dashboard-card {
+  padding: 27px;
+  border: 1px solid rgba(23, 61, 51, .11);
+  border-radius: 24px;
+  background: rgba(255, 253, 248, .86);
+  box-shadow: 0 12px 35px rgba(38, 76, 52, .07);
+}
+.dashboard-card--new { background: #edf6e7; }
+.card-heading h2, .roster-toolbar h2 { margin: 0; font-size: 25px; }
+.new-student-grid { display: grid; grid-template-columns: 2fr 1fr 1fr auto; align-items: end; gap: 12px; margin-top: 18px; }
+.new-student-grid .button { min-height: 44px; }
+.student-form { margin-bottom: 0; padding: 0; border: 0; background: transparent; }
+
+.roster-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 19px; }
+.roster-toolbar__tools { display: flex; align-items: center; gap: 13px; }
+.roster-toolbar__tools > span { color: var(--muted); font-size: 12px; font-weight: 900; white-space: nowrap; }
+.admin-search { margin: 0; }
+.admin-search input { width: 195px; min-height: 39px; padding-left: 13px; }
+
+.admin-list { overflow: hidden; border: 1px solid var(--line); border-radius: 17px; background: #fffefa; }
+.admin-list__head, .admin-person {
+  display: grid;
+  grid-template-columns: 55px minmax(145px, 1.4fr) minmax(105px, .8fr) minmax(105px, .8fr) 87px minmax(118px, auto);
+  align-items: center;
+  gap: 11px;
+}
+.admin-list__head {
+  min-height: 39px;
+  padding: 0 16px;
+  color: var(--muted);
+  background: #f1f5ed;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.admin-person { min-height: 76px; padding: 10px 16px; border-top: 1px solid var(--line); }
+.admin-person:first-of-type { border-top: 0; }
+.admin-person__animal { width: 48px; height: 48px; }
+.admin-person input, .admin-person select { min-height: 37px; padding: 0 8px; font-size: 12px; }
+.admin-person__score { width: 100%; text-align: center; }
+.admin-person__actions { display: flex; justify-content: flex-end; gap: 5px; }
+.admin-action { min-height: 37px; border: 0; border-radius: 10px; padding: 0 10px; color: #fff; background: var(--forest); font-size: 11px; font-weight: 900; }
+.admin-action--small { width: 34px; padding: 0; font-size: 18px; color: var(--forest); background: #e3f0dc; }
+.admin-action--minus { color: #a65049; background: #fae5df; }
+.admin-action--delete { color: #a65049; background: #f8e9e5; }
+.admin-action:hover { filter: brightness(.96); transform: translateY(-1px); }
+.admin-list__empty { margin: 0; padding: 30px; color: var(--muted); text-align: center; font-weight: 800; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+
+@media (max-width: 920px) {
+  .new-student-grid { grid-template-columns: 1fr 1fr; }
+  .new-student-grid__name { grid-column: 1 / -1; }
+  .new-student-grid .button { grid-column: 1 / -1; }
+  .admin-list__head { display: none; }
+  .admin-person { grid-template-columns: 50px 1fr 1fr; gap: 8px; }
+  .admin-person__animal { grid-row: span 2; }
+  .admin-person__name { grid-column: 2 / -1; }
+  .admin-person__score { grid-column: 2; }
+  .admin-person__actions { grid-column: 3; }
+}
+
+@media (max-width: 620px) {
+  .admin-header, .admin-main { width: min(100% - 24px, 1120px); }
+  .admin-main { padding-top: 25px; }
+  .admin-header__actions .button--ghost { display: none; }
+  .login-card { margin: 25px auto; padding: 30px 22px; }
+  .dashboard__intro, .roster-toolbar { display: block; }
+  .dashboard__intro > p { margin-top: 18px; }
+  .roster-toolbar__tools { justify-content: space-between; margin-top: 15px; }
+  .admin-search { flex: 1; }
+  .admin-search input { width: 100%; }
+  .dashboard-card { padding: 18px 13px; border-radius: 18px; }
+  .admin-person { grid-template-columns: 44px 1fr 1fr; padding: 10px; }
+  .admin-person__animal { width: 42px; height: 42px; }
+  .admin-person__actions { flex-wrap: wrap; }
+  .admin-action { padding-inline: 8px; }
+}
+

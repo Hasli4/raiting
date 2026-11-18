@@ -30,6 +30,14 @@ const DEMO_STUDENTS = [
   { id: "demo-5", display_name: "Вика М.", avatar_id: "panda", color: "lilac", score: 3, updated_at: "2026-11-14T08:00:00Z" }
 ];
 
+const BEHAVIORS = [
+  { id: "sway", duration: 4.8 },
+  { id: "stroll", duration: 7.2 },
+  { id: "jump", duration: 2.1 },
+  { id: "dash", duration: 3.1 },
+  { id: "look", duration: 3.8 }
+];
+
 const config = window.CLASS_WORLD_CONFIG || {};
 const elements = {
   animals: document.querySelector("#animals"),
@@ -41,23 +49,8 @@ const elements = {
   classTitle: document.querySelector("#classTitle"),
   connectionStatus: document.querySelector("#connectionStatus"),
   aboutDialog: document.querySelector("#aboutDialog"),
-  adminDialog: document.querySelector("#adminDialog"),
   heroDialog: document.querySelector("#heroDialog"),
-  heroDialogContent: document.querySelector("#heroDialogContent"),
-  loginView: document.querySelector("#loginView"),
-  adminView: document.querySelector("#adminView"),
-  loginForm: document.querySelector("#loginForm"),
-  loginEmail: document.querySelector("#loginEmail"),
-  loginPassword: document.querySelector("#loginPassword"),
-  loginMessage: document.querySelector("#loginMessage"),
-  studentForm: document.querySelector("#studentForm"),
-  studentName: document.querySelector("#studentName"),
-  studentAvatar: document.querySelector("#studentAvatar"),
-  studentColor: document.querySelector("#studentColor"),
-  studentMessage: document.querySelector("#studentMessage"),
-  adminRoster: document.querySelector("#adminRoster"),
-  adminCount: document.querySelector("#adminCount"),
-  studentSearch: document.querySelector("#studentSearch")
+  heroDialogContent: document.querySelector("#heroDialogContent")
 };
 
 const state = {
@@ -65,9 +58,8 @@ const state = {
   backendReady: false,
   students: [],
   selectedId: null,
-  isAdmin: false,
   hinted: false,
-  adminSearch: ""
+  behaviors: {}
 };
 
 function escapeHtml(value) {
@@ -253,6 +245,34 @@ function getCreatureSize(count) {
   return Math.max(62, 132 - count * 3);
 }
 
+function getCreatureBehavior(studentId) {
+  if (!state.behaviors[studentId]) {
+    state.behaviors[studentId] = BEHAVIORS[Math.floor(Math.random() * BEHAVIORS.length)];
+  }
+  return state.behaviors[studentId];
+}
+
+function rotateCreatureBehaviors() {
+  const activeIds = state.students
+    .filter(function (student) { return Number(student.score) > 1; })
+    .map(function (student) { return student.id; });
+  const activeIdSet = new Set(activeIds);
+
+  Object.keys(state.behaviors).forEach(function (studentId) {
+    if (!activeIdSet.has(studentId)) delete state.behaviors[studentId];
+  });
+
+  if (activeIds.length === 0) return;
+  activeIds.forEach(function (studentId) {
+    if (Math.random() < 0.46) {
+      const previousId = state.behaviors[studentId] ? state.behaviors[studentId].id : "";
+      const options = BEHAVIORS.filter(function (behavior) { return behavior.id !== previousId; });
+      state.behaviors[studentId] = options[Math.floor(Math.random() * options.length)];
+    }
+  });
+  renderWorld();
+}
+
 function renderWorld() {
   const activeStudents = state.students.filter(function (student) {
     return Number(student.score) > 1;
@@ -279,50 +299,20 @@ function renderWorld() {
     const selected = student.id === state.selectedId ? " is-selected" : "";
     const driftX = (index % 2 === 0 ? 1 : -1) * (7 + (index % 3) * 4);
     const driftY = index % 3 === 0 ? -4 : 3;
+    const behavior = getCreatureBehavior(student.id);
     const label = escapeHtml(student.display_name);
     const level = getLevel(Number(student.score));
     const description = label + ", " + level.title + ", " + student.score + " " + scoreWord(Number(student.score));
     return '<button class="creature' + selected + '" type="button" data-student-id="' + student.id + '" ' +
       'aria-label="' + description + '" style="left:' + slot[0] + '%;top:' + slot[1] + '%;--scale:' + size +
-      ';--size:' + baseSize + 'px;--delay:-' + (index * 1.17) + 's;--duration:' + (4.3 + (index % 4) * .6) + 's;--drift-x:' + driftX + 'px;--drift-y:' + driftY + 'px">' +
-      '<span class="creature__motion"><span class="creature__body">' + animalSvg(student) + '</span></span>' +
+      ';--size:' + baseSize + 'px;--delay:-' + (index * 1.17) + 's;--duration:' + behavior.duration + 's;--drift-x:' + driftX + 'px;--drift-y:' + driftY + 'px">' +
+      '<span class="creature__motion creature__motion--' + behavior.id + '"><span class="creature__body">' + animalSvg(student) + '</span></span>' +
       '<span class="creature__label">' + label + '</span></button>';
   }).join("");
 }
 
-function renderAdminRoster() {
-  if (!state.isAdmin) return;
-  const sorted = state.students.slice().sort(function (a, b) {
-    return Number(b.score) - Number(a.score) || a.display_name.localeCompare(b.display_name, "ru");
-  });
-  const query = state.adminSearch.trim().toLocaleLowerCase("ru");
-  const filtered = sorted.filter(function (student) {
-    return !query || student.display_name.toLocaleLowerCase("ru").includes(query);
-  });
-  elements.adminCount.textContent = query
-    ? filtered.length + " из " + sorted.length
-    : sorted.length + " " + scoreWord(sorted.length);
-  elements.adminRoster.innerHTML = filtered.map(function (student) {
-    return '<article class="admin-row">' +
-      '<div class="admin-row__animal">' + animalSvg(student, true) + '</div>' +
-      '<div><strong>' + escapeHtml(student.display_name) + '</strong><small>' + getLevel(Number(student.score)).title + " · " + student.score + " " + scoreWord(Number(student.score)) + '</small></div>' +
-      '<div class="admin-row__actions">' +
-      '<button class="score-button score-button--minus" data-score="-1" data-student-id="' + student.id + '" type="button" aria-label="Убрать один балл у ' + escapeHtml(student.display_name) + '">−</button>' +
-      '<button class="score-button" data-score="1" data-student-id="' + student.id + '" type="button" aria-label="Добавить один балл ' + escapeHtml(student.display_name) + '">+</button>' +
-      '<label class="score-editor"><input data-score-value type="number" min="0" max="10000" value="' + Number(student.score) + '" inputmode="numeric" aria-label="Установить количество баллов для ' + escapeHtml(student.display_name) + '" /></label>' +
-      '<button class="score-button score-button--save" data-set-score data-student-id="' + student.id + '" type="button" aria-label="Сохранить указанное количество баллов для ' + escapeHtml(student.display_name) + '">✓</button>' +
-      '</div></article>';
-  }).join("") || '<p class="form-message">' + (query ? "Никого не найдено." : "Пока никто не поселился в лесу.") + '</p>';
-}
-
 function renderAll() {
   renderWorld();
-  renderAdminRoster();
-}
-
-function setMessage(element, message, success) {
-  element.textContent = message || "";
-  element.classList.toggle("is-success", Boolean(success && message));
 }
 
 function showHero(studentId) {
@@ -373,50 +363,6 @@ async function loadStudents() {
   renderAll();
 }
 
-function populateSelects() {
-  elements.studentAvatar.innerHTML = AVATARS.map(function (avatar) {
-    return '<option value="' + avatar.id + '">' + avatar.label + '</option>';
-  }).join("");
-  elements.studentColor.innerHTML = COLORS.map(function (color) {
-    return '<option value="' + color.id + '">' + color.label + '</option>';
-  }).join("");
-}
-
-function showLoginView(message) {
-  state.isAdmin = false;
-  elements.loginView.hidden = false;
-  elements.adminView.hidden = true;
-  setMessage(elements.loginMessage, message || "", false);
-}
-
-async function checkAdmin() {
-  const sessionResult = await state.client.auth.getSession();
-  if (!sessionResult.data.session) {
-    showLoginView();
-    return false;
-  }
-  const result = await state.client.rpc("admin_me");
-  if (result.error || result.data !== true) {
-    await state.client.auth.signOut();
-    showLoginView("У этого аккаунта нет доступа к панели учителя.");
-    return false;
-  }
-  state.isAdmin = true;
-  elements.loginView.hidden = true;
-  elements.adminView.hidden = false;
-  renderAdminRoster();
-  return true;
-}
-
-async function openAdmin() {
-  elements.adminDialog.showModal();
-  if (!state.backendReady) {
-    showLoginView("Сначала подключите Supabase: инструкция есть в README.");
-    return;
-  }
-  await checkAdmin();
-}
-
 async function connectBackend() {
   const url = String(config.supabaseUrl || "").trim();
   const key = String(config.supabasePublishableKey || config.supabaseAnonKey || "").trim();
@@ -448,79 +394,10 @@ async function connectBackend() {
   }
 }
 
-async function signIn(event) {
-  event.preventDefault();
-  if (!state.backendReady) return;
-  setMessage(elements.loginMessage, "");
-  const email = elements.loginEmail.value.trim();
-  const password = elements.loginPassword.value;
-  const result = await state.client.auth.signInWithPassword({ email: email, password: password });
-  if (result.error) {
-    setMessage(elements.loginMessage, "Не удалось войти. Проверьте e-mail и пароль.");
-    return;
-  }
-  const isAdmin = await checkAdmin();
-  if (isAdmin) {
-    elements.loginPassword.value = "";
-    await loadStudents();
-  }
-}
-
-async function createStudent(event) {
-  event.preventDefault();
-  if (!state.isAdmin) return;
-  setMessage(elements.studentMessage, "");
-  const result = await state.client.rpc("admin_create_student", {
-    p_display_name: elements.studentName.value.trim(),
-    p_avatar_id: elements.studentAvatar.value,
-    p_color: elements.studentColor.value
-  });
-  if (result.error) {
-    setMessage(elements.studentMessage, "Не удалось добавить героя: " + result.error.message);
-    return;
-  }
-  elements.studentForm.reset();
-  setMessage(elements.studentMessage, "Герой поселился в лесу.", true);
-  await loadStudents();
-}
-
-async function changeScore(studentId, delta) {
-  if (!state.isAdmin) return;
-  const result = await state.client.rpc("admin_change_score", {
-    p_student_id: studentId,
-    p_delta: delta,
-    p_note: ""
-  });
-  if (result.error) {
-    window.alert("Не удалось изменить балл: " + result.error.message);
-    return;
-  }
-  await loadStudents();
-}
-
-async function setScore(studentId, score) {
-  if (!state.isAdmin) return;
-  if (!Number.isInteger(score) || score < 0 || score > 10000) {
-    window.alert("Введите целое число от 0 до 10 000.");
-    return;
-  }
-  const result = await state.client.rpc("admin_set_score", {
-    p_student_id: studentId,
-    p_score: score,
-    p_note: ""
-  });
-  if (result.error) {
-    window.alert("Не удалось установить баллы: " + result.error.message);
-    return;
-  }
-  await loadStudents();
-}
-
 function wireEvents() {
   document.querySelector("#aboutOpen").addEventListener("click", function () {
     elements.aboutDialog.showModal();
   });
-  document.querySelector("#adminOpen").addEventListener("click", openAdmin);
   document.querySelectorAll("[data-close]").forEach(function (button) {
     button.addEventListener("click", function () {
       const dialog = document.querySelector("#" + button.dataset.close);
@@ -531,47 +408,15 @@ function wireEvents() {
     const button = event.target.closest("[data-student-id]");
     if (button) showHero(button.dataset.studentId);
   });
-  elements.loginForm.addEventListener("submit", signIn);
-  elements.studentForm.addEventListener("submit", createStudent);
-  document.querySelector("#signOut").addEventListener("click", async function () {
-    await state.client.auth.signOut();
-    showLoginView("Вы вышли из панели.");
-  });
-  elements.adminRoster.addEventListener("click", function (event) {
-    const button = event.target.closest("[data-score][data-student-id]");
-    if (button) {
-      changeScore(button.dataset.studentId, Number(button.dataset.score));
-      return;
-    }
-    const saveButton = event.target.closest("[data-set-score][data-student-id]");
-    if (saveButton) {
-      const row = saveButton.closest(".admin-row");
-      const input = row.querySelector("[data-score-value]");
-      setScore(saveButton.dataset.studentId, Number(input.value));
-    }
-  });
-  elements.adminRoster.addEventListener("keydown", function (event) {
-    const input = event.target.closest("[data-score-value]");
-    if (input && event.key === "Enter") {
-      event.preventDefault();
-      const row = input.closest(".admin-row");
-      const saveButton = row.querySelector("[data-set-score][data-student-id]");
-      setScore(saveButton.dataset.studentId, Number(input.value));
-    }
-  });
-  elements.studentSearch.addEventListener("input", function () {
-    state.adminSearch = elements.studentSearch.value;
-    renderAdminRoster();
-  });
 }
 
 async function start() {
   document.title = config.classTitle || "Лес открытий";
   elements.classTitle.textContent = config.classTitle || "Лес открытий";
-  populateSelects();
   renderLevels();
   wireEvents();
   await connectBackend();
+  window.setInterval(rotateCreatureBehaviors, 7000);
 }
 
 start();

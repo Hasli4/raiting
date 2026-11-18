@@ -61,12 +61,12 @@
           <button class="button button--ghost" id="aboutOpen" type="button">
             Как это работает
           </button>
-          <button class="admin-orb" id="adminOpen" type="button" aria-label="Войти учителю" title="Войти учителю">
+          <a class="admin-orb" href="admin.html" target="_blank" rel="noopener" aria-label="Открыть панель учителя" title="Панель учителя">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <rect x="5.5" y="10.5" width="13" height="9" rx="2.3"></rect>
               <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.2v2.2"></path>
             </svg>
-          </button>
+          </a>
         </div>
       </header>
 
@@ -147,69 +147,6 @@
         <div><span>02</span><b>Герой получает опыт</b></div>
         <div><span>03</span><b>Мир меняется вместе с классом</b></div>
       </div>
-    </dialog>
-
-    <dialog class="modal modal--admin" id="adminDialog">
-      <button class="modal__close" data-close="adminDialog" type="button" aria-label="Закрыть">×</button>
-      <section id="loginView">
-        <p class="eyebrow">Закрытая зона</p>
-        <h2>Панель учителя</h2>
-        <p class="modal__lead">Войти может только администратор этого класса.</p>
-        <form class="auth-form" id="loginForm">
-          <label>
-            E-mail
-            <input id="loginEmail" name="email" type="email" autocomplete="email" required />
-          </label>
-          <label>
-            Пароль
-            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required />
-          </label>
-          <p class="form-message" id="loginMessage" role="alert"></p>
-          <button class="button button--primary" type="submit">Войти</button>
-        </form>
-      </section>
-
-      <section id="adminView" hidden>
-        <div class="admin-topline">
-          <div>
-            <p class="eyebrow">Закрытая зона</p>
-            <h2>Панель учителя</h2>
-          </div>
-          <button class="text-button" id="signOut" type="button">Выйти</button>
-        </div>
-
-        <form class="student-form" id="studentForm">
-          <h3>Добавить героя</h3>
-          <div class="form-grid">
-            <label class="form-grid__wide">
-              Имя или никнейм
-              <input id="studentName" name="displayName" maxlength="28" placeholder="Например, Аня К." required />
-            </label>
-            <label>
-              Животное
-              <select id="studentAvatar" name="avatarId"></select>
-            </label>
-            <label>
-              Цвет
-              <select id="studentColor" name="color"></select>
-            </label>
-          </div>
-          <p class="form-message" id="studentMessage" role="alert"></p>
-          <button class="button button--primary" type="submit">Добавить в лес</button>
-        </form>
-
-        <section class="admin-roster" aria-labelledby="rosterTitle">
-          <div class="admin-roster__head">
-            <h3 id="rosterTitle">Герои</h3>
-            <span id="adminCount"></span>
-          </div>
-          <label class="admin-search">
-            <span>Поиск по имени</span>
-            <input id="studentSearch" type="search" autocomplete="off" placeholder="Например, Михаил" />
-          </label>
-          <div id="adminRoster"></div>
-        </section>
-      </section>
     </dialog>
 
     <dialog class="modal modal--hero" id="heroDialog">
