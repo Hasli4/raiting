@@ -181,7 +181,8 @@ async function checkAdmin() {
   }
   const result = await state.client.rpc("admin_me");
   if (result.error || result.data !== true) {
-    await state.client.auth.signOut();
+    // Не завершаем сессии в других браузерах или на других устройствах.
+    await state.client.auth.signOut({ scope: "local" });
     showLogin("У этого аккаунта нет доступа к панели учителя.");
     return false;
   }
@@ -288,10 +289,14 @@ async function connect() {
   }
   try {
     const module = await import("https://esm.sh/@supabase/supabase-js@2");
-    // Панель требует пароль при каждом новом открытии: сессия не сохраняется
-    // в браузере после закрытия или перезагрузки этой страницы.
+    // У каждого браузера хранится собственная сессия в его localStorage.
+    // Поэтому вход в Edge не влияет на вход в Chrome и наоборот.
     state.client = module.createClient(url, key, {
-      auth: { persistSession: false, autoRefreshToken: true }
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        storageKey: "les-otkrytiy-teacher-session"
+      }
     });
     state.backendReady = true;
     await checkAdmin();
@@ -315,7 +320,8 @@ function wireEvents() {
     renderRoster();
   });
   elements.signOut.addEventListener("click", async function () {
-    await state.client.auth.signOut();
+    // Кнопка «Выйти» действует только в текущем браузере.
+    await state.client.auth.signOut({ scope: "local" });
     showLogin("Вы вышли из панели.");
   });
   elements.adminRoster.addEventListener("click", function (event) {

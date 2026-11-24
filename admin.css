@@ -46,6 +46,7 @@
 .login-card__copy { max-width: 330px; color: var(--muted); line-height: 1.55; }
 
 .dashboard { display: grid; gap: 24px; }
+.dashboard[hidden] { display: none; }
 .dashboard__intro {
   display: flex;
   align-items: end;

@@ -200,6 +200,10 @@ h1 em { color: #c9725e; }
 .tree--three { left: 19%; bottom: -7px; transform: scale(.55); opacity: .82; }
 
 .world__animals { z-index: 4; }
+.world__animals,
+.world__animals * {
+  -webkit-tap-highlight-color: transparent;
+}
 .world__empty { position: absolute; inset: 0; z-index: 5; display: grid; align-content: center; justify-items: center; color: rgba(255,255,255,.9); text-align: center; pointer-events: none; }
 .world__empty[hidden] { display: none; }
 .world__empty span { margin-bottom: 5px; color: #fff0a0; font-size: 48px; text-shadow: 0 4px 0 rgba(23,61,51,.2); }
@@ -223,6 +227,8 @@ h1 em { color: #c9725e; }
   text-align: center;
   touch-action: manipulation;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
   transition:
     left var(--move-duration) cubic-bezier(.33, .05, .26, 1),
     top var(--move-duration) cubic-bezier(.33, .05, .26, 1),
