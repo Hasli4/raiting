@@ -7,18 +7,13 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Check out
@@ -29,16 +24,27 @@ jobs:
 
       - name: Prepare public website files
         run: |
-          mkdir _site
+          mkdir -p _site
           cp index.html admin.html styles.css admin.css app.config.js favicon.ico favicon.png favicon.svg _site/
           cp -R assets js _site/
 
-      - name: Upload website
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload GitHub Pages artifact
+        id: upload
+        uses: actions/upload-pages-artifact@v4
         with:
+          name: github-pages
           path: _site
 
-      - name: Deploy
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
