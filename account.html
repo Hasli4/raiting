@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#173d33" />
+    <link rel="icon" href="favicon.svg?v=forest-v1" type="image/svg+xml" />
+    <title>Личный кабинет · Лес открытий</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="account.css" />
+  </head>
+  <body class="account-page">
+    <header class="account-header">
+      <a class="brand" href="index.html">
+        <span class="brand__mark" aria-hidden="true">✦</span>
+        <span>
+          <strong id="classTitle">Лес открытий</strong>
+          <small>Личный кабинет героя</small>
+        </span>
+      </a>
+      <div class="account-header__actions">
+        <a class="button button--ghost" href="index.html">Открыть мир</a>
+        <button class="button button--quiet" id="signOut" type="button" hidden>Выйти</button>
+      </div>
+    </header>
+
+    <main class="account-main">
+      <section class="account-login" id="authView">
+        <div class="account-login__mark" aria-hidden="true">✦</div>
+        <p class="eyebrow">Один вход для всех</p>
+        <h1>Личный кабинет<br /><em>героя.</em></h1>
+        <p class="account-login__copy">Ученики настраивают только своего героя. Учитель после входа автоматически перейдёт в панель управления миром.</p>
+        <form class="auth-form" id="loginForm">
+          <label>
+            E-mail
+            <input id="loginEmail" name="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Пароль
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required />
+          </label>
+          <p class="form-message" id="loginMessage" role="alert"></p>
+          <button class="button button--primary" type="submit">Войти</button>
+        </form>
+        <p class="account-login__note">Учётную запись выдаёт преподаватель. Если её ещё нет или вы забыли пароль, напишите ему.</p>
+      </section>
+
+      <section class="cabinet" id="cabinetView" hidden>
+        <div class="cabinet__intro">
+          <div>
+            <p class="eyebrow">Твоё пространство</p>
+            <h1>Привет,<br /><em id="studentName">герой</em>!</h1>
+            <p>Выбирай образ и цвет своего персонажа. Опыт начисляет учитель — его нельзя передавать или изменять самому.</p>
+          </div>
+          <div class="cabinet__identity">
+            <span id="accountEmail"></span>
+            <small>вход выполнен</small>
+          </div>
+        </div>
+
+        <div class="cabinet-grid">
+          <section class="cabinet-card character-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Твой герой</p>
+                <h2>Настрой образ</h2>
+              </div>
+              <span class="character-level" id="characterLevel">Путешественник</span>
+            </div>
+            <div class="character-card__content">
+              <div class="character-preview" id="characterPreview" aria-label="Предпросмотр героя"></div>
+              <form class="character-form" id="characterForm">
+                <fieldset>
+                  <legend>Животное</legend>
+                  <div class="choice-grid choice-grid--avatars" id="avatarChoices"></div>
+                </fieldset>
+                <fieldset>
+                  <legend>Цвет</legend>
+                  <div class="choice-grid choice-grid--colors" id="colorChoices"></div>
+                </fieldset>
+                <p class="form-message" id="characterMessage" role="alert"></p>
+                <button class="button button--primary" type="submit">Сохранить образ</button>
+              </form>
+            </div>
+          </section>
+
+          <aside class="cabinet-card progress-card">
+            <p class="eyebrow">Путь героя</p>
+            <strong class="progress-card__score" id="studentScore">0</strong>
+            <span>баллов опыта</span>
+            <div class="cabinet-progress">
+              <p><span id="progressText">Первый шаг</span><span id="progressPercent">0%</span></p>
+              <div class="progress-bar"><span id="progressBar"></span></div>
+            </div>
+            <p class="progress-card__hint" id="nextLevelText">Продолжай исследовать Python.</p>
+          </aside>
+        </div>
+
+        <section class="cabinet-card shop-card">
+          <div class="shop-card__heading">
+            <div>
+              <p class="eyebrow">Лесная лавка</p>
+              <h2>Награды и улучшения</h2>
+              <p>Листья — валюта для будущих наград. Трата листьев не уменьшит опыт и уровень героя.</p>
+            </div>
+            <div class="wallet" aria-label="Количество листьев в кошельке">
+              <span aria-hidden="true">🍃</span>
+              <strong id="walletBalance">0</strong>
+              <small>листьев</small>
+            </div>
+          </div>
+          <div class="shop-list" id="shopList" aria-live="polite">
+            <article class="shop-placeholder">
+              <span>✦</span>
+              <div><strong>Лавка готовится к открытию</strong><p>Здесь появятся скины, одежда и дополнительные награды от преподавателя.</p></div>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.config.js"></script>
+    <script type="module" src="js/account.js"></script>
+  </body>
+</html>

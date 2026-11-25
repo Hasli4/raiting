@@ -27,9 +27,6 @@ const elements = {
   classTitle: document.querySelector("#classTitle"),
   loginView: document.querySelector("#loginView"),
   adminView: document.querySelector("#adminView"),
-  loginForm: document.querySelector("#loginForm"),
-  loginEmail: document.querySelector("#loginEmail"),
-  loginPassword: document.querySelector("#loginPassword"),
   loginMessage: document.querySelector("#loginMessage"),
   signOut: document.querySelector("#signOut"),
   studentForm: document.querySelector("#studentForm"),
@@ -176,13 +173,13 @@ async function loadStudents() {
 async function checkAdmin() {
   const session = await state.client.auth.getSession();
   if (!session.data.session) {
-    showLogin();
+    showLogin("Сначала войдите через личный кабинет.");
     return false;
   }
   const result = await state.client.rpc("admin_me");
   if (result.error || result.data !== true) {
-    // Не завершаем сессии в других браузерах или на других устройствах.
-    await state.client.auth.signOut({ scope: "local" });
+    // Ученик мог случайно открыть прямую ссылку. Не завершаем его сессию:
+    // это позволит спокойно вернуться в свой личный кабинет.
     showLogin("У этого аккаунта нет доступа к панели учителя.");
     return false;
   }
@@ -192,21 +189,6 @@ async function checkAdmin() {
   elements.signOut.hidden = false;
   await loadStudents();
   return true;
-}
-
-async function signIn(event) {
-  event.preventDefault();
-  setMessage(elements.loginMessage, "");
-  const result = await state.client.auth.signInWithPassword({
-    email: elements.loginEmail.value.trim(),
-    password: elements.loginPassword.value
-  });
-  if (result.error) {
-    setMessage(elements.loginMessage, "Не удалось войти. Проверьте e-mail и пароль.");
-    return;
-  }
-  elements.loginPassword.value = "";
-  await checkAdmin();
 }
 
 async function createStudent(event) {
@@ -313,7 +295,6 @@ async function connect() {
 }
 
 function wireEvents() {
-  elements.loginForm.addEventListener("submit", signIn);
   elements.studentForm.addEventListener("submit", createStudent);
   elements.studentSearch.addEventListener("input", function () {
     state.search = elements.studentSearch.value;

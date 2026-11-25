@@ -25,7 +25,7 @@ jobs:
       - name: Prepare public website files
         run: |
           mkdir -p _site
-          cp index.html admin.html styles.css admin.css app.config.js favicon.ico favicon.png favicon.svg _site/
+          cp index.html admin.html account.html styles.css admin.css account.css app.config.js favicon.ico favicon.png favicon.svg _site/
           cp -R assets js _site/
 
       - name: Upload GitHub Pages artifact
