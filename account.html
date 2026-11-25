@@ -21,6 +21,7 @@
       </a>
       <div class="account-header__actions">
         <a class="button button--ghost" href="index.html">Открыть мир</a>
+        <button class="button button--quiet" id="changePassword" type="button" hidden>Пароль</button>
         <button class="button button--quiet" id="signOut" type="button" hidden>Выйти</button>
       </div>
     </header>
@@ -44,6 +45,25 @@
           <button class="button button--primary" type="submit">Войти</button>
         </form>
         <p class="account-login__note">Учётную запись выдаёт преподаватель. Если её ещё нет или вы забыли пароль, напишите ему.</p>
+      </section>
+
+      <section class="account-login" id="passwordView" hidden>
+        <div class="account-login__mark" aria-hidden="true">✦</div>
+        <p class="eyebrow">Добро пожаловать</p>
+        <h1>Придумай<br /><em>пароль.</em></h1>
+        <p class="account-login__copy" id="passwordLead">Он нужен для входа в личный кабинет с любого устройства.</p>
+        <form class="auth-form" id="passwordForm">
+          <label>
+            Новый пароль
+            <input id="newPassword" type="password" autocomplete="new-password" minlength="8" required />
+          </label>
+          <label>
+            Повтори пароль
+            <input id="repeatPassword" type="password" autocomplete="new-password" minlength="8" required />
+          </label>
+          <p class="form-message" id="passwordMessage" role="alert"></p>
+          <button class="button button--primary" type="submit">Сохранить пароль</button>
+        </form>
       </section>
 
       <section class="cabinet" id="cabinetView" hidden>

@@ -31,6 +31,13 @@ const elements = {
   loginEmail: document.querySelector("#loginEmail"),
   loginPassword: document.querySelector("#loginPassword"),
   loginMessage: document.querySelector("#loginMessage"),
+  passwordView: document.querySelector("#passwordView"),
+  passwordForm: document.querySelector("#passwordForm"),
+  newPassword: document.querySelector("#newPassword"),
+  repeatPassword: document.querySelector("#repeatPassword"),
+  passwordLead: document.querySelector("#passwordLead"),
+  passwordMessage: document.querySelector("#passwordMessage"),
+  changePassword: document.querySelector("#changePassword"),
   signOut: document.querySelector("#signOut"),
   studentName: document.querySelector("#studentName"),
   accountEmail: document.querySelector("#accountEmail"),
@@ -54,7 +61,8 @@ const state = {
   student: null,
   session: null,
   selectedAvatar: "fox",
-  selectedColor: "amber"
+  selectedColor: "amber",
+  needsPasswordSetup: false
 };
 
 function escapeHtml(value) {
@@ -119,9 +127,36 @@ function setMessage(element, message, success) {
 function showAuth(message) {
   state.student = null;
   elements.authView.hidden = false;
+  elements.passwordView.hidden = true;
   elements.cabinetView.hidden = true;
+  elements.changePassword.hidden = true;
   elements.signOut.hidden = true;
   setMessage(elements.loginMessage, message || "", false);
+}
+
+function showPasswordSetup(isInvitation) {
+  elements.authView.hidden = true;
+  elements.cabinetView.hidden = true;
+  elements.passwordView.hidden = false;
+  elements.signOut.hidden = false;
+  elements.changePassword.hidden = true;
+  elements.passwordLead.textContent = isInvitation
+    ? "Приглашение подтверждено. Придумай пароль, чтобы потом входить в свой кабинет."
+    : "Установи новый пароль для своего личного кабинета.";
+  setMessage(elements.passwordMessage, "");
+  elements.newPassword.focus();
+}
+
+function authLinkType() {
+  const search = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return search.get("type") || hash.get("type") || "";
+}
+
+function isAuthCallback() {
+  const search = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return Boolean(search.get("code") || hash.get("access_token") || hash.get("refresh_token"));
 }
 
 function renderChoices() {
@@ -194,6 +229,11 @@ async function routeSession() {
     return;
   }
 
+  if (state.needsPasswordSetup) {
+    showPasswordSetup(true);
+    return;
+  }
+
   const adminCheck = await state.client.rpc("admin_me");
   if (!adminCheck.error && adminCheck.data === true) {
     window.location.replace("admin.html");
@@ -204,7 +244,9 @@ async function routeSession() {
     await loadStudent();
     elements.accountEmail.textContent = state.session.user.email || "";
     elements.authView.hidden = true;
+    elements.passwordView.hidden = true;
     elements.cabinetView.hidden = false;
+    elements.changePassword.hidden = false;
     elements.signOut.hidden = false;
     await loadShop();
   } catch (error) {
@@ -248,6 +290,31 @@ async function saveCharacter(event) {
   setMessage(elements.characterMessage, "Образ героя сохранён.", true);
 }
 
+async function savePassword(event) {
+  event.preventDefault();
+  const password = elements.newPassword.value;
+  const repeat = elements.repeatPassword.value;
+  setMessage(elements.passwordMessage, "");
+  if (password.length < 8) {
+    setMessage(elements.passwordMessage, "Пароль должен содержать не менее 8 символов.");
+    return;
+  }
+  if (password !== repeat) {
+    setMessage(elements.passwordMessage, "Пароли не совпадают.");
+    return;
+  }
+  const result = await state.client.auth.updateUser({ password: password });
+  if (result.error) {
+    setMessage(elements.passwordMessage, "Не удалось сохранить пароль. Попробуйте другой.");
+    return;
+  }
+  elements.newPassword.value = "";
+  elements.repeatPassword.value = "";
+  state.needsPasswordSetup = false;
+  window.history.replaceState({}, document.title, window.location.pathname);
+  await routeSession();
+}
+
 async function connect() {
   const url = String(config.supabaseUrl || "").trim();
   const key = String(config.supabasePublishableKey || config.supabaseAnonKey || "").trim();
@@ -262,6 +329,14 @@ async function connect() {
         persistSession: true,
         autoRefreshToken: true,
         storageKey: "les-otkrytiy-teacher-session"
+      }
+    });
+    const linkType = authLinkType();
+    state.needsPasswordSetup = linkType === "invite" || linkType === "recovery" || isAuthCallback();
+    state.client.auth.onAuthStateChange(function (event) {
+      if (event === "PASSWORD_RECOVERY") {
+        state.needsPasswordSetup = true;
+        showPasswordSetup(false);
       }
     });
     await routeSession();
@@ -280,6 +355,7 @@ async function connect() {
 function wireEvents() {
   elements.loginForm.addEventListener("submit", signIn);
   elements.characterForm.addEventListener("submit", saveCharacter);
+  elements.passwordForm.addEventListener("submit", savePassword);
   elements.avatarChoices.addEventListener("click", function (event) {
     const button = event.target.closest("[data-avatar]");
     if (!button) return;
@@ -295,6 +371,9 @@ function wireEvents() {
   elements.signOut.addEventListener("click", async function () {
     await state.client.auth.signOut({ scope: "local" });
     showAuth("Вы вышли из личного кабинета.");
+  });
+  elements.changePassword.addEventListener("click", function () {
+    showPasswordSetup(false);
   });
 }
 
