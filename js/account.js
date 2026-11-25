@@ -278,7 +278,11 @@ async function saveCharacter(event) {
     p_color: state.selectedColor
   });
   if (result.error) {
-    setMessage(elements.characterMessage, "Не удалось сохранить образ. Попробуйте ещё раз.");
+    console.error("Не удалось сохранить образ героя:", result.error);
+    setMessage(
+      elements.characterMessage,
+      "Не удалось сохранить образ: " + (result.error.message || "неизвестная ошибка.") + " Отправь это сообщение преподавателю."
+    );
     return;
   }
   state.student = result.data && result.data[0];
