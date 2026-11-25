@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Герои урока</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="popup__header">
+        <span class="popup__mark">✦</span>
+        <span>
+          <strong>Герои урока</strong>
+          <small>Мини-мир на вкладке</small>
+        </span>
+      </header>
+
+      <section class="status" id="status" aria-live="polite">
+        Проверяю подключение…
+      </section>
+
+      <section class="connected-actions" id="connectedActions" hidden>
+        <button class="button button--pdf" id="openPdfViewer" type="button">
+          Открыть PDF с героями
+        </button>
+        <button class="button button--primary" id="showOverlay" type="button">
+          Показать героев
+        </button>
+        <button class="button button--soft" id="hideOverlay" type="button">
+          Скрыть с этой вкладки
+        </button>
+        <p class="tip">Для PDF откроется отдельная вкладка просмотрщика. Баллы герои только читают.</p>
+      </section>
+
+      <details class="settings" id="settings">
+        <summary>Настройка подключения</summary>
+        <p>По умолчанию расширение получает публичные настройки с сайта рейтинга.</p>
+        <label>
+          Адрес сайта рейтинга
+          <input id="siteUrl" type="url" inputmode="url" autocomplete="url" />
+        </label>
+        <button class="button button--soft" id="connectSite" type="button">
+          Подключить к сайту
+        </button>
+        <details class="advanced">
+          <summary>Настроить вручную</summary>
+          <label>
+            Supabase Project URL
+            <input id="supabaseUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://…supabase.co" />
+          </label>
+          <label>
+            Publishable key
+            <input id="publishableKey" type="password" autocomplete="off" placeholder="sb_publishable_…" />
+          </label>
+          <button class="button button--soft" id="saveManual" type="button">
+            Сохранить настройки
+          </button>
+        </details>
+      </details>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
+

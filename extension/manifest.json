@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Герои урока",
+  "description": "Мини-герои из «Леса открытий» на текущей вкладке.",
+  "version": "0.3.0",
+  "action": {
+    "default_title": "Герои урока",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://hasli4.github.io/*",
+    "https://*.supabase.co/*",
+    "file:///*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "file:///*"
+      ],
+      "js": [
+        "course-pdf-bridge.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "overlay.css"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
+

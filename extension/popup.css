@@ -1,0 +1,76 @@
+:root {
+  color: #173d33;
+  background: #fffaf1;
+  font-family: Nunito, ui-rounded, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { width: 310px; margin: 0; }
+button, input { font: inherit; }
+
+.popup { padding: 17px; }
+.popup__header { display: flex; align-items: center; gap: 10px; }
+.popup__mark {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: #fff9d5;
+  background: #173d33;
+  box-shadow: 3px 3px 0 #b9dba9;
+  font-size: 19px;
+}
+.popup__header strong, .popup__header small { display: block; }
+.popup__header strong { font-size: 14px; }
+.popup__header small { margin-top: 1px; color: #64756e; font-size: 10px; font-weight: 700; }
+
+.status {
+  margin: 17px 0 12px;
+  padding: 10px 11px;
+  border-radius: 11px;
+  color: #42604f;
+  background: #edf6e8;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.status.is-error { color: #9c4c43; background: #fce9e4; }
+
+.connected-actions { display: grid; gap: 8px; }
+.button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 12px;
+  color: #173d33;
+  background: #e4f0dc;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.button:hover { filter: brightness(.97); }
+.button--primary { color: #fff; background: #173d33; }
+.button--soft { background: #e7f1e1; }
+.button--pdf { color: #fff; background: #32698f; }
+.tip { margin: 2px 1px 7px; color: #6d7c76; font-size: 10px; font-weight: 700; line-height: 1.4; }
+
+.settings { margin-top: 7px; border-top: 1px solid rgba(23, 61, 51, .12); }
+.settings > summary { padding: 13px 0 6px; cursor: pointer; font-size: 11px; font-weight: 900; }
+.settings p { margin: 3px 0 11px; color: #6d7c76; font-size: 10px; font-weight: 700; line-height: 1.4; }
+label { display: grid; gap: 4px; margin: 9px 0; color: #496258; font-size: 10px; font-weight: 900; }
+input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid #cbdac7;
+  border-radius: 8px;
+  padding: 0 9px;
+  color: #173d33;
+  background: #fff;
+  font-size: 11px;
+}
+input:focus { border-color: #659a73; outline: 3px solid rgba(112, 173, 121, .17); }
+.advanced { margin-top: 12px; }
+.advanced summary { color: #597265; cursor: pointer; font-size: 10px; font-weight: 900; }
+.advanced .button { width: 100%; margin-top: 3px; }
+

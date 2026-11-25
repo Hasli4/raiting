@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF с героями — Лес открытий</title>
+    <link rel="stylesheet" href="pdf-viewer.css" />
+  </head>
+  <body>
+    <main class="pdf-app">
+      <header class="toolbar">
+        <a class="brand" href="https://hasli4.github.io/raiting/" target="_blank" rel="noreferrer">
+          <span class="brand__mark">✦</span>
+          <span>
+            <strong>Герои урока</strong>
+            <small>PDF с живым рейтингом</small>
+          </span>
+        </a>
+
+        <div class="toolbar__actions">
+          <input id="pdfFile" type="file" accept="application/pdf,.pdf" hidden />
+          <button class="button button--primary" id="choosePdf" type="button">Выбрать PDF</button>
+          <button class="button" id="toggleHeroes" type="button" aria-pressed="true">Скрыть героев</button>
+          <button class="button" id="toggleFullscreen" type="button" aria-pressed="false">Во весь экран</button>
+        </div>
+      </header>
+
+      <section class="document" aria-label="Просмотр PDF">
+        <div class="document__empty" id="emptyState">
+          <span class="document__icon" aria-hidden="true">📄</span>
+          <h1>Откройте презентацию или задание</h1>
+          <p>Выберите PDF с компьютера — он откроется в этой вкладке, а герои будут гулять поверх нижней части страницы.</p>
+          <button class="button button--primary" id="choosePdfEmpty" type="button">Выбрать PDF</button>
+          <p class="document__note">Файл остаётся на вашем компьютере: расширение не загружает его в рейтинг.</p>
+          <p class="document__note document__note--error" id="fileAccessHelp" hidden></p>
+          <p class="document__note">Для показа классу нажмите «Во весь экран» справа вверху.</p>
+        </div>
+        <embed id="pdfEmbed" type="application/pdf" title="Выбранный PDF" hidden />
+      </section>
+    </main>
+
+    <script src="overlay.js"></script>
+    <script type="module" src="pdf-viewer.js"></script>
+  </body>
+</html>
